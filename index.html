@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>청라2동 약국 상권 분석 리포트</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Visualization & Content Choices: 
+        - Report Info: Cheongna 2-dong population demographics. Goal: Understand the potential customer base. Viz: Bar chart for age distribution, Doughnut chart for gender ratio. Interaction: Hovering over charts for details. Justification: Bar charts are excellent for comparing age groups, while doughnut charts are clear for showing part-to-whole proportions like gender. Library: Chart.js.
+        - Report Info: Competing pharmacies and floating population. Goal: Assess the competitive landscape and foot traffic. Viz: Key metrics in card-style layout, Bar chart for floating population. Interaction: N/A. Justification: Cards provide quick, scannable key stats. A bar chart clearly compares weekday vs. weekend traffic. Library: Chart.js.
+        - Report Info: Nearby hospitals by specialty. Goal: Identify primary sources of prescriptions. Viz: Horizontal Bar chart for hospital count by specialty, HTML table for detailed hospital list. Interaction: N/A. Justification: A horizontal bar chart is effective for comparing categories with longer labels (specialty names). A table provides detailed, structured information for key hospitals. Library: Chart.js for the chart, standard HTML for the table.
+    -->
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #F8F7F4; }
+        .tab-btn { transition: all 0.3s ease; }
+        .tab-btn.active { border-bottom: 2px solid #6D9886; color: #393E46; font-weight: 700; }
+        .tab-btn:not(.active) { border-bottom: 2px solid transparent; color: #6B7280; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .kpi-card { background-color: #FFFFFF; border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); text-align: center; }
+        .kpi-value { font-size: 2rem; font-weight: 700; color: #4A5568; }
+        .kpi-label { font-size: 0.9rem; color: #718096; margin-top: 0.25rem; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin: 2rem auto; height: 350px; max-height: 400px; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-[#393E46]">청라2동 약국 상권 분석 리포트</h1>
+            <p class="text-gray-500 mt-2">데이터 기반 의사결정을 위한 대화형 대시보드</p>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-md p-2 mb-8 sticky top-0 z-10">
+            <nav id="tabs" class="flex justify-center space-x-4 md:space-x-8">
+                <button data-tab="overview" class="tab-btn active text-sm md:text-base py-3 px-4">1. 지역 개요</button>
+                <button data-tab="commercial" class="tab-btn text-sm md:text-base py-3 px-4">2. 상권 분석</button>
+                <button data-tab="hospital" class="tab-btn text-sm md:text-base py-3 px-4">3. 병원 분석</button>
+            </nav>
+        </div>
+
+        <main>
+            <div id="overview" class="content-section active">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold mb-4 text-[#393E46]">지역 핵심 요약</h2>
+                    <p class="text-gray-600 mb-6">
+                        청라2동의 인구 통계 및 주거 특성을 통해 지역 주민의 구성을 파악합니다. 이는 잠재 고객층을 이해하고 약국 운영 전략을 수립하는 데 기초가 됩니다. 연령대별 분포는 주요 질환군을 예측하는 데 도움이 되며, 세대수와 주거 형태는 지역의 안정성과 성장 가능성을 시사합니다.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div class="kpi-card">
+                            <div class="kpi-value">39,471명</div>
+                            <div class="kpi-label">총 인구</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value">14,351세대</div>
+                            <div class="kpi-label">총 세대수</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value">2.75명</div>
+                            <div class="kpi-label">세대당 인구</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-semibold mb-2 text-center">연령대별 인구 분포</h3>
+                             <div class="chart-container">
+                                <canvas id="populationAgeChart"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                             <h3 class="text-xl font-semibold mb-2 text-center">성별 인구 비율</h3>
+                            <div class="chart-container" style="max-height:350px;">
+                                <canvas id="populationGenderChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="commercial" class="content-section">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                     <h2 class="text-2xl font-bold mb-4 text-[#393E46]">상권 및 경쟁 환경</h2>
+                    <p class="text-gray-600 mb-6">
+                        이 섹션에서는 청라2동의 상업적 활기를 나타내는 유동인구와 직접적인 경쟁 상대인 주변 약국 현황을 분석합니다. 유동인구 데이터는 시간대별, 요일별 잠재 고객 수를 파악하는 데 중요하며, 경쟁 약국 정보는 시장 포화도와 차별화 전략 수립의 핵심 요소입니다.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div class="kpi-card">
+                            <div class="kpi-value">8개소</div>
+                            <div class="kpi-label">반경 500m 내 경쟁약국</div>
+                        </div>
+                        <div class="kpi-card">
+                             <div class="kpi-value">~2,300명</div>
+                            <div class="kpi-label">일평균 유동인구 (주중)</div>
+                        </div>
+                        <div class="kpi-card">
+                             <div class="kpi-value">~2,800명</div>
+                            <div class="kpi-label">일평균 유동인구 (주말)</div>
+                        </div>
+                    </div>
+                     <div>
+                        <h3 class="text-xl font-semibold mb-4 text-center">시간대별 유동인구 (1,000명 단위)</h3>
+                        <div class="chart-container">
+                            <canvas id="floatingPopulationChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="hospital" class="content-section">
+                 <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-bold mb-4 text-[#393E46]">주요 병·의원 분석</h2>
+                     <p class="text-gray-600 mb-6">
+                        약국 수입의 핵심인 처방전 발행 의료기관을 분석합니다. 주변 병원의 수와 진료과목 분포는 약국이 취급해야 할 의약품의 종류와 재고 수준을 결정하는 데 결정적인 영향을 미칩니다. 특히 소아과, 이비인후과, 내과 등 특정 과목의 집중도는 약국의 전문성을 강화할 기회를 제공합니다.
+                    </p>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-semibold mb-4 text-center">진료과목별 병원 수</h3>
+                            <div class="chart-container">
+                                <canvas id="hospitalSpecialtyChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                             <h3 class="text-xl font-semibold mb-4 text-center">주요 병원 리스트 (반경 500m)</h3>
+                             <table class="w-full text-sm text-left text-gray-500">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">병원명</th>
+                                        <th scope="col" class="px-6 py-3">진료과목</th>
+                                        <th scope="col" class="px-6 py-3">거리(m)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="bg-white border-b">
+                                        <td class="px-6 py-4">연세S가정의학과의원</td>
+                                        <td class="px-6 py-4">가정의학과</td>
+                                        <td class="px-6 py-4">88</td>
+                                    </tr>
+                                    <tr class="bg-gray-50 border-b">
+                                        <td class="px-6 py-4">청라굿모닝이비인후과의원</td>
+                                        <td class="px-6 py-4">이비인후과</td>
+                                        <td class="px-6 py-4">92</td>
+                                    </tr>
+                                    <tr class="bg-white border-b">
+                                        <td class="px-6 py-4">청라자이소아청소년과의원</td>
+                                        <td class="px-6 py-4">소아청소년과</td>
+                                        <td class="px-6 py-4">121</td>
+                                    </tr>
+                                    <tr class="bg-gray-50 border-b">
+                                        <td class="px-6 py-4">경희S한의원</td>
+                                        <td class="px-6 py-4">한의원</td>
+                                        <td class="px-6 py-4">121</td>
+                                    </tr>
+                                    <tr class="bg-white border-b">
+                                        <td class="px-6 py-4">서울초이스정형외과의원</td>
+                                        <td class="px-6 py-4">정형외과</td>
+                                        <td class="px-6 py-4">252</td>
+                                    </tr>
+                                     <tr class="bg-gray-50">
+                                        <td class="px-6 py-4">연세봄정신건강의학과의원</td>
+                                        <td class="px-6 py-4">정신건강의학과</td>
+                                        <td class="px-6 py-4">345</td>
+                                    </tr>
+                                </tbody>
+                             </table>
+                        </div>
+                    </div>
+                 </div>
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const sections = document.querySelectorAll('.content-section');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(item => item.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    const target = tab.getAttribute('data-tab');
+                    sections.forEach(section => {
+                        if (section.id === target) {
+                            section.classList.add('active');
+                        } else {
+                            section.classList.remove('active');
+                        }
+                    });
+                });
+            });
+            
+            const chartOptions = {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { family: "'Noto Sans KR', sans-serif" }
+                        }
+                    },
+                    tooltip: {
+                        bodyFont: { family: "'Noto Sans KR', sans-serif" },
+                        titleFont: { family: "'Noto Sans KR', sans-serif" }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            font: { family: "'Noto Sans KR', sans-serif" }
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            font: { family: "'Noto Sans KR', sans-serif" }
+                        }
+                    }
+                }
+            };
+            
+            const commonHorizontalChartOptions = {
+                ...chartOptions,
+                indexAxis: 'y',
+            }
+
+            new Chart(document.getElementById('populationAgeChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['0-9세', '10대', '20대', '30대', '40대', '50대', '60대 이상'],
+                    datasets: [{
+                        label: '인구수 (명)',
+                        data: [5060, 4843, 3448, 6265, 9037, 6088, 4730],
+                        backgroundColor: '#A3D2CA',
+                        borderColor: '#6D9886',
+                        borderWidth: 1
+                    }]
+                },
+                options: chartOptions
+            });
+
+            new Chart(document.getElementById('populationGenderChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['남자', '여자'],
+                    datasets: [{
+                        label: '성별 인구수',
+                        data: [19409, 20062],
+                        backgroundColor: ['#A3D2CA', '#FAD2E1'],
+                        borderColor: ['#6D9886', '#F3A4C2'],
+                        borderWidth: 1
+                    }]
+                },
+                options: { ...chartOptions, scales: {} }
+            });
+            
+            new Chart(document.getElementById('floatingPopulationChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['06-12시', '12-15시', '15-18시', '18-21시', '21-24시'],
+                    datasets: [
+                        {
+                            label: '주중 유동인구',
+                            data: [1.3, 1.4, 1.5, 2.3, 1.8],
+                            backgroundColor: '#A3D2CA',
+                            borderColor: '#6D9886',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '주말 유동인구',
+                            data: [1.2, 1.8, 2.8, 2.1, 1.4],
+                            backgroundColor: '#FAD2E1',
+                            borderColor: '#F3A4C2',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: chartOptions
+            });
+
+            new Chart(document.getElementById('hospitalSpecialtyChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['소아청소년과', '이비인후과', '내과', '정형외과', '가정의학과', '한의원', '치과'],
+                    datasets: [{
+                        label: '병원 수',
+                        data: [4, 4, 3, 2, 1, 3, 10],
+                        backgroundColor: '#A3D2CA',
+                        borderColor: '#6D9886',
+                        borderWidth: 1
+                    }]
+                },
+                options: commonHorizontalChartOptions
+            });
+        });
+    </script>
+
+</body>
+</html>
